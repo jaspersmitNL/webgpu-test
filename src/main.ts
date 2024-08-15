@@ -105,6 +105,19 @@ async function main() {
   });
 
   const frame = () => {
+    const time = performance.now() / 1000;
+    const sinTime = Math.sin(time);
+    uiformValues[0] = sinTime;
+    uiformValues[1] = sinTime;
+
+    device.queue.writeBuffer(
+      uniformBuffer,
+      0,
+      uiformValues.buffer,
+      0,
+      uiformValues.byteLength
+    );
+
     const commandEncoder = device.createCommandEncoder();
     const textureView = ctx.getCurrentTexture().createView();
     const renderPassDescriptor: GPURenderPassDescriptor = {
