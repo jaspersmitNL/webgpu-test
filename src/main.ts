@@ -24,7 +24,6 @@ async function main() {
   const ctx = canvas.getContext("webgpu") as GPUCanvasContext;
 
   const positions = new Float32Array([-0.5, -0.5, 0.5, -0.5, 0.0, 0.5]);
-  const colors = new Float32Array([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1]);
 
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
@@ -41,9 +40,10 @@ async function main() {
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
   });
-  const colorBuffer = device.createBuffer({
-    size: colors.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+
+  const uniformBuffer = device.createBuffer({
+    size: 2 * 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
   });
 
@@ -55,7 +55,14 @@ async function main() {
     positions.byteLength
   );
 
-  device.queue.writeBuffer(colorBuffer, 0, colors.buffer, 0, colors.byteLength);
+  const uiformValues = new Float32Array([0.5, 0.5]);
+  device.queue.writeBuffer(
+    uniformBuffer,
+    0,
+    uiformValues.buffer,
+    0,
+    uiformValues.byteLength
+  );
 
   const pipeline = device.createRenderPipeline({
     layout: "auto",
@@ -73,16 +80,6 @@ async function main() {
             },
           ],
         },
-        {
-          arrayStride: 4 * 4, // 4 floats * 4 bytes each
-          attributes: [
-            {
-              shaderLocation: 1,
-              offset: 0,
-              format: "float32x4",
-            },
-          ],
-        },
       ],
     },
     fragment: {
@@ -93,6 +90,18 @@ async function main() {
     primitive: {
       topology: "triangle-list",
     },
+  });
+
+  const unfiromBindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+        },
+      },
+    ],
   });
 
   const frame = () => {
@@ -112,7 +121,7 @@ async function main() {
     const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
     passEncoder.setPipeline(pipeline);
     passEncoder.setVertexBuffer(0, vertexBuffer);
-    passEncoder.setVertexBuffer(1, colorBuffer);
+    passEncoder.setBindGroup(0, unfiromBindGroup);
     passEncoder.draw(3, 1, 0, 0);
     passEncoder.end();
 
